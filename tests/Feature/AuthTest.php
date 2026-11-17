@@ -57,4 +57,20 @@ class AuthTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_email_is_case_insensitive_at_registration_and_login(): void
+    {
+        $this->post('/register', [
+            'name' => 'Hana Girma',
+            'email' => '  Hana@Example.COM ',
+            'password' => 'a-long-password',
+            'password_confirmation' => 'a-long-password',
+        ])->assertRedirect('/orgs');
+
+        $this->assertDatabaseHas('users', ['email' => 'hana@example.com']);
+
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'HANA@example.com', 'password' => 'a-long-password'])->assertRedirect('/orgs');
+        $this->assertAuthenticated();
+    }
 }

@@ -124,4 +124,16 @@ class RoleTest extends TestCase
 
         $this->assertSame(Role::Admin, $this->admin->roleIn($this->organization));
     }
+
+    public function test_an_admin_who_removes_themselves_is_sent_back_to_their_organization_list(): void
+    {
+        $this->addMember($this->organization, User::factory()->create(), Role::Admin);
+
+        $this->actingAs($this->admin)
+            ->delete("/orgs/{$this->organization->id}/members/{$this->admin->id}")
+            ->assertRedirect('/orgs');
+
+        $this->assertNull($this->admin->roleIn($this->organization));
+        $this->get("/orgs/{$this->organization->id}")->assertNotFound();
+    }
 }

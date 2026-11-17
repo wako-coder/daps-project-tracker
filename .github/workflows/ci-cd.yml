@@ -42,7 +42,7 @@ jobs:
       DB_PASSWORD: tracker
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -68,8 +68,9 @@ jobs:
   deploy:
     name: Deploy
     # The gate: this job starts only after `test` succeeded, and only for a push to main.
+    # It is skipped until the APP_URL repository variable (the live URL) has been set.
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.APP_URL != ''
     runs-on: ubuntu-latest
     environment:
       name: production

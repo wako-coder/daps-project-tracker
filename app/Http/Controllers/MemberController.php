@@ -59,11 +59,16 @@ class MemberController extends Controller
         return back()->with('status', "{$user->name} is now {$newRole->value}.");
     }
 
-    public function destroy(Organization $organization, User $user): RedirectResponse
+    public function destroy(Request $request, Organization $organization, User $user): RedirectResponse
     {
         $this->ensureNotLastAdmin($organization, $user);
 
         $organization->users()->detach($user->getKey());
+
+        // An admin who removes themselves can no longer open this organization.
+        if ($user->is($request->user())) {
+            return redirect()->route('organizations.index')->with('status', "You left {$organization->name}.");
+        }
 
         return back()->with('status', "{$user->name} removed.");
     }
