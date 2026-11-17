@@ -1,0 +1,36 @@
+# Render blueprint: the hosting setup, described in code.
+# Values marked `sync: false` are secrets; they are typed into the Render
+# dashboard and never stored in this repository.
+services:
+  - type: web
+    name: daps-project-tracker
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /up
+    # Render must not deploy on its own when code is pushed. The only way to
+    # production is the GitHub Actions pipeline, after the tests pass.
+    autoDeploy: false
+    envVars:
+      - key: APP_NAME
+        value: Project Tracker
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: RUN_DEMO_SEED
+        value: "true"
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_MEMBER_PASSWORD
+        sync: false
