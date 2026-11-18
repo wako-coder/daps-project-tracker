@@ -18,3 +18,12 @@
         @endforeach
     </select>
 </label>
+
+<label>
+    Priority
+    <select name="priority">
+        @foreach ($priorities as $option)
+            <option value="{{ $option->value }}" @selected(old('priority', $task?->priority->value ?? 'medium') === $option->value)>{{ $option->label() }}</option>
+        @endforeach
+    </select>
+</label>

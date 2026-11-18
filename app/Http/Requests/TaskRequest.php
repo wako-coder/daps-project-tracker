@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
@@ -15,6 +16,7 @@ class TaskRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'estimated_cost' => ['required', 'string', 'regex:'.Money::PATTERN],
             'status' => ['required', Rule::enum(TaskStatus::class)],
+            'priority' => ['required', Rule::enum(TaskPriority::class)],
         ];
     }
 
@@ -30,6 +32,7 @@ class TaskRequest extends FormRequest
             'title' => $this->validated('title'),
             'estimated_cost_santim' => Money::toSantim($this->validated('estimated_cost')),
             'status' => $this->validated('status'),
+            'priority' => $this->validated('priority'),
         ];
     }
 }
