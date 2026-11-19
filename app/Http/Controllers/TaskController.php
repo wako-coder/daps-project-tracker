@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Requests\TaskRequest;
 use App\Models\Organization;
@@ -32,6 +33,7 @@ class TaskController extends Controller
             'project' => $project,
             'task' => $task,
             'statuses' => TaskStatus::cases(),
+            'priorities' => TaskPriority::cases(),
         ]);
     }
 

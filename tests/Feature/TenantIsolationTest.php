@@ -130,7 +130,7 @@ class TenantIsolationTest extends TestCase
 
         // Entoto's task under my own project's URL.
         $this->get("/orgs/{$this->other->id}/projects/{$myProject->id}/tasks/{$this->entotoTask->id}/edit")->assertNotFound();
-        $this->put("/orgs/{$this->other->id}/projects/{$myProject->id}/tasks/{$this->entotoTask->id}", ['title' => 'Hijacked', 'estimated_cost' => '1', 'status' => 'done'])->assertNotFound();
+        $this->put("/orgs/{$this->other->id}/projects/{$myProject->id}/tasks/{$this->entotoTask->id}", ['title' => 'Hijacked', 'estimated_cost' => '1', 'status' => 'done', 'priority' => 'high'])->assertNotFound();
         $this->delete("/orgs/{$this->other->id}/projects/{$myProject->id}/tasks/{$this->entotoTask->id}")->assertNotFound();
 
         // Entoto's admin is not a member of my organization, so I cannot change or remove them here.
@@ -151,6 +151,7 @@ class TenantIsolationTest extends TestCase
                 'title' => 'Planted',
                 'estimated_cost' => '10',
                 'status' => 'todo',
+                'priority' => 'medium',
                 'project_id' => $this->entotoProject->id,
             ])
             ->assertRedirect();

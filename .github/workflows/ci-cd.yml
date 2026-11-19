@@ -20,7 +20,7 @@ jobs:
     # The tests run against PostgreSQL, the same engine as production.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: tracker
           POSTGRES_PASSWORD: tracker

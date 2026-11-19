@@ -2,14 +2,14 @@
 
 A small multi-tenant project tracker. Several organizations share one app and one database; each organization sees only its own projects and tasks.
 
-- **Live:** _added after the first deploy_
-- **Pipeline:** see the Actions tab
+- **Live:** https://daps-project-tracker.onrender.com (free tier: the first request after 15 idle minutes takes about a minute)
+- **Pipeline:** https://github.com/wako-coder/daps-project-tracker/actions
 
 ## Architecture
 
 - **Laravel 12, server-rendered Blade pages, session login.** No JavaScript build step.
 - **PostgreSQL** in development, CI and production, so tests run on the engine that production uses.
-- **One Docker image** (FrankenPHP) runs on Render's free tier; the database is a managed PostgreSQL.
+- **One Docker image** (FrankenPHP) runs on Render's free tier; the database is a managed PostgreSQL on Neon.
 - **GitHub Actions** tests every push and is the only way code reaches production.
 
 Data model:
@@ -21,6 +21,8 @@ users ──< organization_user (role: admin | member) >── organizations ─
 - A user can belong to many organizations, with a different role in each.
 - Money is stored as whole santim in `bigint` columns (`budget_santim`, `estimated_cost_santim`), never as floats.
 - A project's **spent** is the estimated cost of its tasks that are done. **Planned** is the cost of all its tasks. Both are shown against the budget.
+
+Each task also has a **priority** (low, medium or high), and a project's task list can be filtered by it. The budget figures always cover the whole project, whatever the filter.
 
 Roles: any member can read everything in the organization and create, edit and delete tasks. Only admins manage members and create, edit and delete projects (and so their budgets).
 
@@ -42,6 +44,44 @@ The organization list queries through the user's memberships (`$user->organizati
 - **A new route outside the group** that takes a project or task id directly.
 - **The database does not enforce it.** There is no row-level security; one application bug is enough. See hardening below.
 - **Adding a member by email** tells an admin whether an email address has an account. Accepted for now, and limited to admins.
+
+## How the pipeline works
+
+[.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml). Render's own auto-deploy is turned off in [render.yaml](render.yaml), so this workflow is the only way code reaches production.
+
+1. **Every push and pull request** starts the `Test` job.
+2. `Test` starts a PostgreSQL 18 service (the version production runs), installs PHP 8.3 and the Composer dependencies, checks code style with Pint, and runs the whole test suite against PostgreSQL.
+3. **`Deploy` needs `Test`.** It runs only for a push to `main`, and only after `Test` passed. A pull request or a red build never deploys.
+4. `Deploy` calls Render's deploy hook (a repository secret) and asks for this exact commit.
+5. Render builds the Docker image and starts it. [docker/entrypoint.sh](docker/entrypoint.sh) runs `php artisan migrate --force` before the app accepts traffic. If the migration fails the container exits and Render keeps the previous release serving.
+6. The job polls `/version` until the live site reports this commit (Render sets `RENDER_GIT_COMMIT`). A deploy that never comes up turns the run red after 15 minutes.
+7. A smoke test requests `/up` and `/login` on the live URL.
+
+Runs on `main` are never cancelled part way, so a newer push cannot overtake a deploy in progress.
+
+## The priority migration
+
+[database/migrations/2026_11_18_000001_add_priority_to_tasks_table.php](database/migrations/2026_11_18_000001_add_priority_to_tasks_table.php)
+
+**Up**, in one transaction (PostgreSQL runs schema changes transactionally):
+
+1. Add `priority` as a nullable `varchar(10)`.
+2. Backfill: `UPDATE tasks SET priority = 'medium' WHERE priority IS NULL`. Every existing task becomes medium.
+3. Make the column `NOT NULL` with default `medium`, and index `(project_id, priority)` for the filter.
+4. Add a `CHECK` constraint so the database itself only accepts `low`, `medium` or `high`.
+
+It ships like any other change: merging to `main` runs the tests, and the container runs the migration on start-up against the live database. The demo seeder sees its data already exists and does nothing, so the seeded organization, users, project and tasks stay as they were, now with priority medium.
+
+**Rolling back.** `down()` drops the constraint, the index and the column, and nothing else. The plan, in order:
+
+1. **Revert the code.** Revert the merge commit on `main` and push; the pipeline tests and deploys it like any change. The old code works against the new schema: it never reads `priority`, and new rows get the column default `medium`. The site is back to the previous behaviour within one deploy.
+2. **Then, if the column should go too,** ship a new migration whose `up()` does what this one's `down()` does, and let the pipeline deploy it. Running `migrate:rollback` by hand is the alternative, but it has no safe moment: before step 1 the running code still reads the column, and after step 1 the migration file is gone.
+
+The only data lost is the priorities chosen after the deploy. Titles, costs, statuses and budgets are untouched. On a site with real users, take a database backup first (a Neon branch, as was done before this migration, or `pg_dump`).
+
+Locally, or in a rehearsal, `php artisan migrate:rollback --step=1` runs `down()` directly.
+
+[tests/Feature/TaskPriorityTest.php](tests/Feature/TaskPriorityTest.php) rehearses this: it puts the schema back to the version before priorities, inserts tasks the old way, runs the migration, checks they are all medium, then rolls back and migrates again.
 
 ## Running it locally
 

@@ -61,7 +61,18 @@
     <section class="card">
         <h2>Tasks</h2>
 
-        @if ($tasks->isEmpty())
+        <nav class="filter" aria-label="Filter tasks by priority">
+            Priority:
+            <a href="{{ route('projects.show', [$organization, $project]) }}" @class(['current' => ! $priority]) @if (! $priority) aria-current="page" @endif>All</a>
+            @foreach ($priorities as $option)
+                <a href="{{ route('projects.show', [$organization, $project, 'priority' => $option->value]) }}"
+                   @class(['current' => $priority === $option]) @if ($priority === $option) aria-current="page" @endif>{{ $option->label() }}</a>
+            @endforeach
+        </nav>
+
+        @if ($tasks->isEmpty() && $priority)
+            <p class="empty">No {{ strtolower($priority->label()) }} priority tasks.</p>
+        @elseif ($tasks->isEmpty())
             <p class="empty">No tasks yet. Add the first one below.</p>
         @else
             <div class="table-wrap">
@@ -70,6 +81,7 @@
                         <tr>
                             <th>Task</th>
                             <th>Status</th>
+                            <th>Priority</th>
                             <th class="num">Estimated cost</th>
                             <th></th>
                         </tr>
@@ -79,6 +91,7 @@
                             <tr>
                                 <td>{{ $task->title }}</td>
                                 <td><span class="badge badge-{{ $task->status->value }}">{{ $task->status->label() }}</span></td>
+                                <td><span class="badge priority-{{ $task->priority->value }}">{{ $task->priority->label() }}</span></td>
                                 <td class="num">{{ $money::format($task->estimated_cost_santim) }}</td>
                                 <td class="actions">
                                     <a href="{{ route('tasks.edit', [$organization, $project, $task]) }}">Edit</a>

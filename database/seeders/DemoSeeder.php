@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\Role;
+use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Organization;
 use App\Models\User;
@@ -58,11 +59,11 @@ class DemoSeeder extends Seeder
             ]);
 
             $project->tasks()->createMany([
-                ['title' => 'Site survey and measurements', 'estimated_cost_santim' => 85_000_00, 'status' => TaskStatus::Done],
-                ['title' => 'Demolition and debris removal', 'estimated_cost_santim' => 150_000_00, 'status' => TaskStatus::Done],
-                ['title' => 'Electrical rewiring', 'estimated_cost_santim' => 420_000_00, 'status' => TaskStatus::InProgress],
-                ['title' => 'Interior painting', 'estimated_cost_santim' => 310_000_00, 'status' => TaskStatus::Todo],
-                ['title' => 'Furniture procurement', 'estimated_cost_santim' => 650_000_00, 'status' => TaskStatus::Todo],
+                ['title' => 'Site survey and measurements', 'estimated_cost_santim' => 85_000_00, 'status' => TaskStatus::Done, 'priority' => TaskPriority::Medium],
+                ['title' => 'Demolition and debris removal', 'estimated_cost_santim' => 150_000_00, 'status' => TaskStatus::Done, 'priority' => TaskPriority::Medium],
+                ['title' => 'Electrical rewiring', 'estimated_cost_santim' => 420_000_00, 'status' => TaskStatus::InProgress, 'priority' => TaskPriority::High],
+                ['title' => 'Interior painting', 'estimated_cost_santim' => 310_000_00, 'status' => TaskStatus::Todo, 'priority' => TaskPriority::Low],
+                ['title' => 'Furniture procurement', 'estimated_cost_santim' => 650_000_00, 'status' => TaskStatus::Todo, 'priority' => TaskPriority::Medium],
             ]);
         });
 

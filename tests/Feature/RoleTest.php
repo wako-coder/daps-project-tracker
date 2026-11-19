@@ -68,13 +68,13 @@ class RoleTest extends TestCase
 
         $this->get($base)->assertOk()->assertSee($project->name);
 
-        $this->post("{$base}/tasks", ['title' => 'Pour foundation', 'estimated_cost' => '1500.50', 'status' => 'todo'])
+        $this->post("{$base}/tasks", ['title' => 'Pour foundation', 'estimated_cost' => '1500.50', 'status' => 'todo', 'priority' => 'medium'])
             ->assertRedirect($base);
 
         $task = $project->tasks()->sole();
         $this->assertSame(150050, $task->estimated_cost_santim);
 
-        $this->put("{$base}/tasks/{$task->id}", ['title' => 'Pour foundation', 'estimated_cost' => '1600', 'status' => 'done'])
+        $this->put("{$base}/tasks/{$task->id}", ['title' => 'Pour foundation', 'estimated_cost' => '1600', 'status' => 'done', 'priority' => 'high'])
             ->assertRedirect($base);
         $this->assertSame(160000, $task->fresh()->estimated_cost_santim);
 
