@@ -101,8 +101,44 @@
         </div>
 
         @if ($isAdmin)
+            @if ($invitations->isNotEmpty())
+                <h3>Pending invitations</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Expires</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($invitations as $invitation)
+                                <tr>
+                                    <td>{{ $invitation->email }}</td>
+                                    <td><span class="badge">{{ $invitation->role->value }}</span></td>
+                                    <td>{{ $invitation->expires_at->format('j M Y') }}</td>
+                                    <td class="actions">
+                                        <form method="POST" action="{{ route('invitations.destroy', [$organization, $invitation]) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="link-button danger">Revoke</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
             <h3>Add a member</h3>
-            <p class="muted">They need an account first. Enter the email they registered with.</p>
+            @if ($invitationsEnabled)
+                <p class="muted">Enter their email. If they already have an account they are added straight away; otherwise they are emailed an invitation link.</p>
+            @else
+                <p class="muted">They need an account first. Enter the email they registered with.</p>
+            @endif
 
             <form method="POST" action="{{ route('members.store', $organization) }}" class="inline-form">
                 @csrf

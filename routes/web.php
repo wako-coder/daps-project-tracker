@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\ProjectController;
@@ -27,6 +28,12 @@ Route::middleware('auth')->group(function () {
     // Lists only the signed-in user's organizations (queried through their memberships).
     Route::get('/orgs', [OrganizationController::class, 'index'])->name('organizations.index');
     Route::post('/orgs', [OrganizationController::class, 'store'])->name('organizations.store');
+
+    // Opening an emailed invitation. Not under /orgs/{organization}: the
+    // invited person is not a member yet. Access comes from the secret token
+    // in the link plus being signed in with the invited email address.
+    Route::get('/invitations/{token}', [InvitationController::class, 'show'])->name('invitations.show');
+    Route::post('/invitations/{token}', [InvitationController::class, 'accept'])->name('invitations.accept');
 
     /*
      * Everything that belongs to one organization lives in this group.
@@ -57,6 +64,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('/members', [MemberController::class, 'store'])->name('members.store');
                 Route::put('/members/{user}', [MemberController::class, 'update'])->name('members.update');
                 Route::delete('/members/{user}', [MemberController::class, 'destroy'])->name('members.destroy');
+                Route::delete('/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
 
                 Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
                 Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');

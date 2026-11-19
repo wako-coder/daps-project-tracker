@@ -34,6 +34,7 @@ class RegisterController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('organizations.index');
+        // Back to where they were heading (for example an invitation link).
+        return redirect()->intended(route('organizations.index'));
     }
 }

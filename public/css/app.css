@@ -65,6 +65,8 @@ main.container { padding-top: 24px; padding-bottom: 48px; }
 .notice-ok { background: var(--ok-bg); }
 .notice-error { background: var(--error-bg); color: var(--danger); }
 
+.copyable { display: inline-block; margin-top: 6px; word-break: break-all; user-select: all; }
+
 .empty { color: var(--muted); padding: 12px 0; }
 
 label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; font-weight: 600; }

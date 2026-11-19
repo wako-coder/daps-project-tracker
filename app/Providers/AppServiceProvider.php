@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Ids in URLs must look like ids, so junk never reaches a bigint query.
-        foreach (['organization', 'project', 'task', 'user'] as $parameter) {
+        foreach (['organization', 'project', 'task', 'user', 'invitation'] as $parameter) {
             Route::pattern($parameter, '[0-9]{1,18}');
         }
     }

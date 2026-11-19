@@ -26,6 +26,12 @@ class Organization extends Model
         return $this->hasMany(Project::class);
     }
 
+    /** Pending email invitations. */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(Invitation::class);
+    }
+
     public function adminCount(): int
     {
         return $this->users()->wherePivot('role', Role::Admin->value)->count();

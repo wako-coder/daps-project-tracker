@@ -26,7 +26,12 @@
 
     <main class="container">
         @if (session('status'))
-            <p class="notice notice-ok" role="status">{{ session('status') }}</p>
+            <p class="notice notice-ok" role="status">
+                {{ session('status') }}
+                @if (session('invitation_link'))
+                    <br><code class="copyable">{{ session('invitation_link') }}</code>
+                @endif
+            </p>
         @endif
 
         @if ($errors->any())
