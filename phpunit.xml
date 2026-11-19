@@ -29,6 +29,8 @@
         <env name="DB_DATABASE" value="tracker_test"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Invitations are off by default in tests; InvitationTest switches them on. -->
+        <env name="BREVO_API_KEY" value="" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
     </php>

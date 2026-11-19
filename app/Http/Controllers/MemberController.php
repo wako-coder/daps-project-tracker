@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Role;
+use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\InvitationMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -16,19 +19,18 @@ use Illuminate\Validation\ValidationException;
  */
 class MemberController extends Controller
 {
-    public function store(Request $request, Organization $organization): RedirectResponse
+    public function store(Request $request, Organization $organization, InvitationMailer $mailer): RedirectResponse
     {
         $data = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'role' => ['required', Rule::enum(Role::class)],
         ]);
 
-        $user = User::where('email', strtolower($data['email']))->first();
+        $email = Str::lower(trim($data['email']));
+        $user = User::where('email', $email)->first();
 
         if ($user === null) {
-            throw ValidationException::withMessages([
-                'email' => 'No account uses that email. Ask them to register first.',
-            ]);
+            return $this->invite($request, $organization, $mailer, $email, Role::from($data['role']));
         }
 
         if ($organization->users()->whereKey($user->getKey())->exists()) {
@@ -38,6 +40,9 @@ class MemberController extends Controller
         }
 
         $organization->users()->attach($user, ['role' => $data['role']]);
+
+        // An earlier invitation to this address is no longer needed.
+        $organization->invitations()->where('email', $email)->delete();
 
         return back()->with('status', "{$user->name} added as {$data['role']}.");
     }
@@ -71,6 +76,44 @@ class MemberController extends Controller
         }
 
         return back()->with('status', "{$user->name} removed.");
+    }
+
+    /**
+     * Nobody has registered with this email yet. With invitations switched on,
+     * create (or renew) an invitation and email its link; otherwise keep the
+     * original behaviour and ask the admin to have them register first.
+     */
+    private function invite(Request $request, Organization $organization, InvitationMailer $mailer, string $email, Role $role): RedirectResponse
+    {
+        if (! InvitationMailer::enabled()) {
+            throw ValidationException::withMessages([
+                'email' => 'No account uses that email. Ask them to register first.',
+            ]);
+        }
+
+        // The token is shown once, in the link. Only its hash is stored.
+        $token = Str::random(48);
+
+        $invitation = $organization->invitations()->updateOrCreate(
+            ['email' => $email],
+            [
+                'role' => $role->value,
+                'token_hash' => Invitation::hashToken($token),
+                'invited_by' => $request->user()->getKey(),
+                'expires_at' => now()->addDays(7),
+            ],
+        );
+
+        $acceptUrl = route('invitations.show', $token);
+
+        if ($mailer->send($invitation, $acceptUrl)) {
+            return back()->with('status', "Invitation sent to {$email}. The link is valid for 7 days.");
+        }
+
+        // The invitation still exists; the admin can pass the link on themselves.
+        return back()
+            ->with('status', "The invitation was created but the email could not be sent. Send {$email} this link yourself (valid for 7 days):")
+            ->with('invitation_link', $acceptUrl);
     }
 
     /** An organization must always keep at least one admin. */

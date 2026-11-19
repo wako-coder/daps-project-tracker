@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Role;
 use App\Models\Organization;
+use App\Support\InvitationMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,8 @@ class OrganizationController extends Controller
             'organization' => $organization,
             'projects' => $organization->projects()->withCostTotals()->withCount('tasks')->orderBy('name')->get(),
             'members' => $organization->users()->orderBy('name')->get(),
+            'invitations' => $organization->invitations()->where('expires_at', '>', now())->orderBy('email')->get(),
+            'invitationsEnabled' => InvitationMailer::enabled(),
             'roles' => Role::cases(),
         ]);
     }

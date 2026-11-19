@@ -43,7 +43,8 @@ The organization list queries through the user's memberships (`$user->organizati
 - **A query written outside the pattern.** Isolation depends on always going through the relation (`$organization->projects()`). A future `Project::find($id)` or a raw SQL report would bypass it. The route-walking test catches this for HTTP routes, but not for background jobs, exports or console commands.
 - **A new route outside the group** that takes a project or task id directly.
 - **The database does not enforce it.** There is no row-level security; one application bug is enough. See hardening below.
-- **Adding a member by email** tells an admin whether an email address has an account. Accepted for now, and limited to admins.
+- **Adding a member by email** tells an admin whether an email address has an account (they are either added at once or sent an invitation). Accepted for now, and limited to admins.
+- **Invitation links are bearer tokens.** Whoever holds the link and is signed in with the invited address can join. The token is stored only as a hash, expires after 7 days, works once, and can be revoked; but there is no email verification yet, so the address itself is not proven.
 
 ## How the pipeline works
 
@@ -93,6 +94,14 @@ Shipped on 19 November 2026 through [pull request #1](https://github.com/wako-co
 | Task ids and `created_at` | 1–5, 03:39:59 UTC | unchanged |
 | `tasks.priority` | column did not exist | `medium` on all 5 rows |
 
+## Member invitations (optional feature)
+
+An admin types an email address. If it belongs to an account, that person is added at once. If not, and invitations are switched on, the app stores an invitation and emails a link through [Brevo](https://www.brevo.com)'s HTTPS API (Render's free tier blocks SMTP ports). The invited person registers or logs in with that address and accepts.
+
+- **Switch:** the feature is on only when `BREVO_API_KEY` and `MAIL_FROM_ADDRESS` are set. Without them the app behaves as before.
+- **If the email cannot be sent,** the invitation is still created and the admin is shown the link to pass on.
+- **Removing it:** delete `BREVO_API_KEY` on Render to switch it off at once. To remove the code, revert the pull request; the migration only adds an `invitations` table and `down()` drops it, so nothing else is affected.
+
 ## Two decisions
 
 **Tenant comes from the URL, checked in one place.** Every organization route is nested under `/orgs/{organization}` and passes through one middleware, instead of each controller checking access or a global query scope reading a "current organization" from the session. A user can belong to several organizations, so there is no single current one, and a URL that names the tenant is explicit, linkable and easy to test. The cost is longer URLs and the rule that every query starts from the parent.
@@ -103,7 +112,7 @@ Shipped on 19 November 2026 through [pull request #1](https://github.com/wako-co
 
 - **Row-level security in PostgreSQL**, so the database refuses cross-tenant rows even if application code has a bug.
 - **Migrations as a separate release step** with a lock, not in container start-up, before running more than one instance.
-- **Email verification and password reset**, invitations by email instead of adding existing accounts, and optional two-factor login.
+- **Email verification and password reset**, and optional two-factor login.
 - **Audit log** of membership and role changes; a lock around "last admin" checks, which two simultaneous requests could currently defeat.
 - **Staging environment** deployed first, with production behind a manual approval.
 - **Backups and monitoring**: scheduled backups with a tested restore, error tracking, uptime checks, structured logs.

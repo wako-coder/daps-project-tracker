@@ -28,6 +28,13 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // Invitation emails. Leaving BREVO_API_KEY empty switches invitations off.
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+        'from_address' => env('MAIL_FROM_ADDRESS'),
+        'from_name' => env('MAIL_FROM_NAME', 'Project Tracker'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

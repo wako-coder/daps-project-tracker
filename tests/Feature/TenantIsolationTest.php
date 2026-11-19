@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Invitation;
 use App\Models\Organization;
 use App\Models\Project;
 use App\Models\Task;
@@ -29,6 +30,8 @@ class TenantIsolationTest extends TestCase
 
     private User $entotoAdmin;
 
+    private Invitation $entotoInvitation;
+
     private Organization $other;
 
     private User $intruder;
@@ -41,6 +44,12 @@ class TenantIsolationTest extends TestCase
         $this->entoto = $this->organizationWith($this->entotoAdmin);
         $this->entotoProject = Project::factory()->for($this->entoto)->create(['name' => 'Secret Entoto Project']);
         $this->entotoTask = Task::factory()->for($this->entotoProject)->create(['title' => 'Secret Entoto Task']);
+        $this->entotoInvitation = $this->entoto->invitations()->create([
+            'email' => 'secret-entoto-invitee@example.com',
+            'role' => 'member',
+            'token_hash' => Invitation::hashToken('entoto-token'),
+            'expires_at' => now()->addDays(7),
+        ]);
 
         $this->intruder = User::factory()->create();
         $this->other = $this->organizationWith($this->intruder);
@@ -63,6 +72,7 @@ class TenantIsolationTest extends TestCase
             'project' => $this->entotoProject->id,
             'task' => $this->entotoTask->id,
             'user' => $this->entotoAdmin->id,
+            'invitation' => $this->entotoInvitation->id,
         ];
 
         return route($route->getName(), array_intersect_key($ids, array_flip($route->parameterNames())));
@@ -102,6 +112,7 @@ class TenantIsolationTest extends TestCase
         $this->assertSame(1, $this->entoto->users()->count());
         $this->assertSame(1, $this->entoto->projects()->count());
         $this->assertSame(1, $this->entotoProject->tasks()->count());
+        $this->assertModelExists($this->entotoInvitation);
     }
 
     /** A guard against the easiest mistake: adding a route and forgetting the middleware. */
