@@ -13,6 +13,11 @@ FROM dunglas/frankenphp:1-php8.3
 
 RUN install-php-extensions pdo_pgsql opcache
 
+# The image gives the frankenphp binary the "bind to ports below 1024" capability.
+# Hosts that drop all capabilities (Render does) then refuse to start it:
+# "exec: frankenphp: Operation not permitted". We listen on $PORT (10000), so remove it.
+RUN setcap -r /usr/local/bin/frankenphp
+
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr
