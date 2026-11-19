@@ -83,6 +83,33 @@ Locally, or in a rehearsal, `php artisan migrate:rollback --step=1` runs `down()
 
 [tests/Feature/TaskPriorityTest.php](tests/Feature/TaskPriorityTest.php) rehearses this: it puts the schema back to the version before priorities, inserts tasks the old way, runs the migration, checks they are all medium, then rolls back and migrates again.
 
+### How it went on the live database
+
+Shipped on 19 November 2026 through [pull request #1](https://github.com/wako-coder/daps-project-tracker/pull/1) and [this pipeline run](https://github.com/wako-coder/daps-project-tracker/actions/runs/44456583310). A Neon branch, `before-priority-migration`, was taken from production first.
+
+| | Before | After |
+|---|---|---|
+| Users / organizations / memberships / projects / tasks | 2 / 1 / 2 / 1 / 5 | 2 / 1 / 2 / 1 / 5 |
+| Task ids and `created_at` | 1–5, 03:39:59 UTC | unchanged |
+| `tasks.priority` | column did not exist | `medium` on all 5 rows |
+
+## Two decisions
+
+**Tenant comes from the URL, checked in one place.** Every organization route is nested under `/orgs/{organization}` and passes through one middleware, instead of each controller checking access or a global query scope reading a "current organization" from the session. A user can belong to several organizations, so there is no single current one, and a URL that names the tenant is explicit, linkable and easy to test. The cost is longer URLs and the rule that every query starts from the parent.
+
+**Money as whole santim.** Budgets and costs are `bigint` santim, converted at the edge by [Money](app/Support/Money.php). Sums in SQL and PHP are exact integer arithmetic, with no float rounding and no decimal strings to handle. The cost is a conversion on every form and display.
+
+## Before real production use
+
+- **Row-level security in PostgreSQL**, so the database refuses cross-tenant rows even if application code has a bug.
+- **Migrations as a separate release step** with a lock, not in container start-up, before running more than one instance.
+- **Email verification and password reset**, invitations by email instead of adding existing accounts, and optional two-factor login.
+- **Audit log** of membership and role changes; a lock around "last admin" checks, which two simultaneous requests could currently defeat.
+- **Staging environment** deployed first, with production behind a manual approval.
+- **Backups and monitoring**: scheduled backups with a tested restore, error tracking, uptime checks, structured logs.
+- **A paid instance**: the free tier sleeps after 15 minutes, and the container currently runs as root.
+- **Pagination and rate limits** on lists and write endpoints.
+
 ## Running it locally
 
 Requires PHP 8.2+ with `pdo_pgsql`, Composer and Docker.
