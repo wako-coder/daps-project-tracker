@@ -1,7 +1,7 @@
 # Local development database only. Production uses a managed PostgreSQL.
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: tracker
       POSTGRES_PASSWORD: tracker

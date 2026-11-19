@@ -2,14 +2,14 @@
 
 A small multi-tenant project tracker. Several organizations share one app and one database; each organization sees only its own projects and tasks.
 
-- **Live:** _added after the first deploy_
-- **Pipeline:** see the Actions tab
+- **Live:** https://daps-project-tracker.onrender.com (free tier: the first request after 15 idle minutes takes about a minute)
+- **Pipeline:** https://github.com/wako-coder/daps-project-tracker/actions
 
 ## Architecture
 
 - **Laravel 12, server-rendered Blade pages, session login.** No JavaScript build step.
 - **PostgreSQL** in development, CI and production, so tests run on the engine that production uses.
-- **One Docker image** (FrankenPHP) runs on Render's free tier; the database is a managed PostgreSQL.
+- **One Docker image** (FrankenPHP) runs on Render's free tier; the database is a managed PostgreSQL on Neon.
 - **GitHub Actions** tests every push and is the only way code reaches production.
 
 Data model:
@@ -50,7 +50,7 @@ The organization list queries through the user's memberships (`$user->organizati
 [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml). Render's own auto-deploy is turned off in [render.yaml](render.yaml), so this workflow is the only way code reaches production.
 
 1. **Every push and pull request** starts the `Test` job.
-2. `Test` starts a PostgreSQL 16 service, installs PHP 8.3 and the Composer dependencies, checks code style with Pint, and runs the whole test suite against PostgreSQL.
+2. `Test` starts a PostgreSQL 18 service (the version production runs), installs PHP 8.3 and the Composer dependencies, checks code style with Pint, and runs the whole test suite against PostgreSQL.
 3. **`Deploy` needs `Test`.** It runs only for a push to `main`, and only after `Test` passed. A pull request or a red build never deploys.
 4. `Deploy` calls Render's deploy hook (a repository secret) and asks for this exact commit.
 5. Render builds the Docker image and starts it. [docker/entrypoint.sh](docker/entrypoint.sh) runs `php artisan migrate --force` before the app accepts traffic. If the migration fails the container exits and Render keeps the previous release serving.
@@ -77,7 +77,7 @@ It ships like any other change: merging to `main` runs the tests, and the contai
 1. **Revert the code.** Revert the merge commit on `main` and push; the pipeline tests and deploys it like any change. The old code works against the new schema: it never reads `priority`, and new rows get the column default `medium`. The site is back to the previous behaviour within one deploy.
 2. **Then, if the column should go too,** ship a new migration whose `up()` does what this one's `down()` does, and let the pipeline deploy it. Running `migrate:rollback` by hand is the alternative, but it has no safe moment: before step 1 the running code still reads the column, and after step 1 the migration file is gone.
 
-The only data lost is the priorities chosen after the deploy. Titles, costs, statuses and budgets are untouched. On a site with real users, take a database backup (Render dashboard, or `pg_dump`) before step 2.
+The only data lost is the priorities chosen after the deploy. Titles, costs, statuses and budgets are untouched. On a site with real users, take a database backup first (a Neon branch, as was done before this migration, or `pg_dump`).
 
 Locally, or in a rehearsal, `php artisan migrate:rollback --step=1` runs `down()` directly.
 
